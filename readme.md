@@ -101,6 +101,45 @@ vacancy_parser_extension/
 - Set up keyboard shortcut in `chrome://extensions/shortcuts`
 - For debugging: Right-click extension icon → Inspect popup
 
----
 
 **Ready to test? Load it up and parse your first vacancy! 🎉**
+
+
+
+
+
+# How to add / monitor DOM fields yourself (beginner-friendly)
+
+### 1) Open DevTools on the vacancy page
+- Press **F12** (or Right click → **Inspect**)
+- Go to **Elements** tab
+
+### 2) “Pick” the element you want (role/company/salary/etc.)
+- Click the **arrow icon** (top-left in DevTools)
+- Click the element on the page (e.g., the company name)
+
+### 3) Copy a CSS selector
+- In **Elements**, right-click the highlighted node → **Copy → Copy selector**
+- Now you have a CSS selector string.
+
+### 4) Test the selector in Console (super important)
+Go to **Console** tab and run:
+
+```js
+document.querySelector("PASTE_SELECTOR_HERE")?.innerText
+```
+for lists (skills, tags) use
+```js
+[...document.querySelectorAll("PASTE_SELECTOR_HERE")].map(e => e.innerText.trim())
+```
+
+### 5) Add it to a parser file
+
+Example: you found a selector for salary. Put it into pickText([...]):
+```js
+const salary = pickText([
+  "your-new-salary-selector",
+  "your-fallback-selector",
+  ".salary"
+]);
+```
