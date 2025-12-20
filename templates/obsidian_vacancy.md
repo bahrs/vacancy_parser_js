@@ -11,9 +11,8 @@ job_link: "{{job_link}}"
 
 work_mode: "{{work_mode}}"  # office | hybrid | remote | unspecified
 
-location_city: "{{location_city}}"
+location_address: "{{location_address}}"
 location_metro: "{{location_metro}}"
-location_display: "{{location_display}}"
 commute_minutes: "{{commute_minutes}}"
 
 salary: "{{salary}}"
@@ -34,7 +33,8 @@ tags: {{tags_yaml}}
 
 - **Company:** {{company}}
 - **Role:** {{role}} ({{level}})
-- **Location:** {{location_display}}
+- **Location:** {{location_address}}
+- **Metro:** {{location_metro}}
 - **Work mode:** {{work_mode}}
 - **Commute:** {{commute_minutes}} мин
 - **Salary (min net):** {{salary_min_net}} {{salary_currency}}

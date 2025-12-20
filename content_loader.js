@@ -72,10 +72,13 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
       const role = (partial.role || "").trim();
       const role_norm = normalizeRole(role);
       const rawText = (partial.job_description_raw || document.body?.innerText || "").trim();
-      const experience = partial.experience || "";
+      
+      // Include experience field if available for level inference
+      const experienceText = (partial.experience || "").trim();
+      const textForLevel = experienceText ? `${rawText}\n${experienceText}` : rawText;
 
-      const level = partial.level || inferLevel(role, rawText, experience);
-      // Normalize work_mode: if parser extracted it, normalize it; otherwise infer from raw text
+      const level = partial.level || inferLevel(role, textForLevel);
+      // Normalize work_mode if extracted, otherwise infer from rawText
       const work_mode = partial.work_mode 
         ? inferWorkMode(partial.work_mode) 
         : inferWorkMode(rawText);
@@ -88,9 +91,9 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
           .filter(Boolean)
       );
 
-      const location_city = cleanText(partial.location_city || "");
+      // Handle both location_address (HH.ru) and location_city (other parsers) for backward compatibility
+      const location_address = cleanText(partial.location_address || partial.location_city || "");
       const location_metro = cleanText(partial.location_metro || "");
-      const location_display = buildLocationDisplay(location_city, location_metro);
 
       const data = {
         // template fields
@@ -101,9 +104,8 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         source: source === "career.habr" ? "career.habr.com" : source,
         job_link,
         work_mode,
-        location_city,
+        location_address,
         location_metro,
-        location_display,
         commute_minutes: "",
         salary: cleanText(partial.salary || ""),
         salary_min_net,
