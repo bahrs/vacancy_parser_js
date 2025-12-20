@@ -1,8 +1,9 @@
 function parseHHLocation() {
     // Custom parsing for HH.ru location structure:
     // <span data-qa="vacancy-view-raw-address">
-    //   Москва<!-- --><span class="metro-station">...</span>, адрес
+    //   Москва<!-- -->, <span class="metro-station">...</span>, адрес
     // </span>
+    // We need: first text node (city) + last text node (address), skipping metro stations
     
     const addressEl = document.querySelector('[data-qa="vacancy-view-raw-address"]');
     if (!addressEl) {
@@ -12,7 +13,7 @@ function parseHHLocation() {
         return { location_address: location_address || "", location_metro: location_metro || "" };
     }
     
-    // Extract all metro station names first (before we remove them)
+    // Extract all metro station names first
     const metroStations = [];
     const metroElements = addressEl.querySelectorAll('.metro-station [data-qa="address-metro-station-name"]');
     metroElements.forEach(el => {
@@ -32,15 +33,50 @@ function parseHHLocation() {
         });
     }
     
-    // Clone the element and remove all metro-station elements to get clean address
-    const clone = addressEl.cloneNode(true);
-    const metroToRemove = clone.querySelectorAll('.metro-station');
-    metroToRemove.forEach(el => el.remove());
+    // Walk through child nodes to find first and last text nodes (skipping metro stations)
+    // Structure: "Москва<!-- -->, <metro>...</metro>, адрес"
+    // We want: first meaningful text node (city) + last meaningful text node (address)
     
-    // Extract text: this gives us city + address (without metro stations)
-    const location_address = cleanText(clone.textContent || "");
+    const textNodes = [];
     
-    // Join distinct metro stations with commas
+    for (const node of addressEl.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const text = cleanText(node.textContent || "");
+            // Skip text nodes that are just commas/whitespace
+            if (text && !/^[,;\s]+$/.test(text)) {
+                textNodes.push(text);
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // Skip metro station elements completely
+            if (node.classList?.contains("metro-station") || node.querySelector('.metro-station')) {
+                continue;
+            }
+            // For other elements, extract their text content
+            const text = cleanText(node.textContent || "");
+            if (text && !/^[,;\s]+$/.test(text)) {
+                textNodes.push(text);
+            }
+        }
+    }
+    
+    // Combine first and last text nodes
+    let location_address = "";
+    if (textNodes.length > 0) {
+        const firstText = textNodes[0].trim();
+        const lastText = textNodes[textNodes.length - 1].trim();
+        
+        if (textNodes.length === 1) {
+            location_address = firstText;
+        } else if (firstText !== lastText) {
+            // Remove leading comma from lastText if present
+            const cleanLast = lastText.replace(/^,\s*/, "").trim();
+            location_address = `${firstText}, ${cleanLast}`;
+        } else {
+            location_address = firstText;
+        }
+    }
+    
+    location_address = cleanText(location_address);
     const location_metro = metroStations.join(", ");
     
     return { location_address, location_metro };
