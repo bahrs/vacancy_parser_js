@@ -72,9 +72,13 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
       const role = (partial.role || "").trim();
       const role_norm = normalizeRole(role);
       const rawText = (partial.job_description_raw || document.body?.innerText || "").trim();
+      const experience = partial.experience || "";
 
-      const level = partial.level || inferLevel(role, rawText);
-      const work_mode = partial.work_mode || inferWorkMode(rawText);
+      const level = partial.level || inferLevel(role, rawText, experience);
+      // Normalize work_mode: if parser extracted it, normalize it; otherwise infer from raw text
+      const work_mode = partial.work_mode 
+        ? inferWorkMode(partial.work_mode) 
+        : inferWorkMode(rawText);
 
       const { salary_min_net, salary_currency } = parseSalaryMinNetAndCurrency(partial.salary || "");
 
