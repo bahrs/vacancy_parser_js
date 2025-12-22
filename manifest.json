@@ -1,29 +1,59 @@
 {
   "manifest_version": 3,
-  "name": "Vacancy Parser",
-  "version": "1.0",
-  "description": "Parse job vacancies from HH.ru to Obsidian markdown",
-  "permissions": [
-    "activeTab",
-    "clipboardWrite"
+  "name": "Vacancy Parser (Obsidian)",
+  "version": "2.0.0",
+  "description": "One-click parser for hh.ru / career.habr.com / geekjob.ru / superjob.ru → Obsidian Markdown",
+  "permissions": ["activeTab", "clipboardWrite", "scripting"],
+  "host_permissions": [
+    "*://*.hh.ru/*",
+    "*://hh.ru/*",
+    "*://career.habr.com/*",
+    "*://*.career.habr.com/*",
+    "*://geekjob.ru/*",
+    "*://*.geekjob.ru/*",
+    "*://superjob.ru/*",
+    "*://*.superjob.ru/*"
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
   "content_scripts": [
     {
-      "matches": ["*://*.hh.ru/*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://*.hh.ru/*",
+        "*://hh.ru/*",
+        "*://career.habr.com/*",
+        "*://*.career.habr.com/*",
+        "*://geekjob.ru/*",
+        "*://*.geekjob.ru/*",
+        "*://superjob.ru/*",
+        "*://*.superjob.ru/*"
+      ],
+      "js": [
+        "lib/normalize.js",
+        "parsers/hh.js",
+        "parsers/habr.js",
+        "parsers/geekjob.js",
+        "parsers/superjob.js",
+        "content_loader.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["templates/obsidian_vacancy.md"],
+      "matches": ["<all_urls>"]
     }
   ],
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }
