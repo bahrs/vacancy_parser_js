@@ -77,7 +77,8 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
       const experienceText = (partial.experience || "").trim();
       const textForLevel = experienceText ? `${rawText}\n${experienceText}` : rawText;
 
-      const level = partial.level || inferLevel(role, textForLevel);
+      // Pass levelLink from Habr parser for explicit level detection
+      const level = partial.level || inferLevel(role, textForLevel, partial.levelLink || "");
       // Normalize work_mode if extracted, otherwise infer from rawText
       const work_mode = partial.work_mode 
         ? inferWorkMode(partial.work_mode) 
@@ -112,6 +113,7 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         salary_currency,
         stack: partial.stack || [],
         skills,
+        apply_date: new Date().toISOString().slice(0, 10), // Add this line: YYYY-MM-DD
         tags: partial.tags || [],
         job_description_raw: rawText,
         cover_letter_draft: "",

@@ -1,60 +1,85 @@
 function parseHabr() {
-    const role = pickText(["h1"]) || "";
+  const role = pickText(["h1"]) || "";
+
+  // Company: extract from vacancy-company__title block
+  const company = pickText([
+      ".company_name a",
+      ".vacancy-company__title a",
+      'a[href^="/companies/"]'
+  ]) || "";
+
+  // Salary: specific selector for Habr's salary display
+  const salaryRaw = pickText([
+      ".vacancy-header__salary-title",
+      ".vacancy-salary",
+      ".salary"
+  ]) || "";
   
-    // Company often is a link in "Компания" block
-    const company =
-      pickText(['a[href^="/companies/"]']) ||
-      pickText(['section a[href*="companies"]']) ||
-      pickText([".vacancy-company__title a", ".company_name a", "a.company_name"]) ||
-      "";
+  // Convert "Не указана" to empty string
+  const salary = /не\s*указан[аоы]?/i.test(salaryRaw) ? "" : salaryRaw;
+
+  // Location: extract from Местоположение section
+  const location_address = pickText([
+      '.content-section a[href^="/vacancies?city_id="]',
+      'a[href*="city_id="]',
+      ".vacancy-location"
+  ]) || "";
+
+  // Work mode: extract from location/employment section
+  // Look for the section with "Местоположение и тип занятости" header
+  let work_mode = "";
+  const sections = document.querySelectorAll(".content-section");
+  for (const section of sections) {
+      const headerText = section.querySelector(".content-section__title")?.textContent || "";
+      if (/местоположение/i.test(headerText)) {
+          const locationText = cleanText(section.innerText || "");
+          work_mode = inferWorkMode(locationText);
+          break;
+      }
+  }
   
-    // location text is often in a block that contains "Местоположение"
-    const locationText =
-      pickText([".content-section:has(h2)"]) || // may fail in some browsers (no :has)
-      pickText(["main"]) ||
-      "";
-  
-    let location_city = "";
-    // simplest: try obvious fragments on the page
-    location_city =
-      pickText([".vacancy-location", ".vacancy__location", ".location"]) ||
-      ""; // fallback below
-  
-    if (!location_city && locationText) {
-      // Try to take first occurrence of "Москва" / "Санкт-Петербург" etc from main text
-      const m = locationText.match(/\b(Москва|Санкт-Петербург|Нижний Новгород|Казань|Екатеринбург|Новосибирск|Минск|Алматы)\b/i);
-      if (m) location_city = m[1];
-    }
-  
-    // Work mode: search for "Можно удаленно"/"Гибрид"
-    const rawText = document.body?.innerText || "";
-    const work_mode = inferWorkMode(rawText);
-  
-    // Skills/tags near top: anchors that look like tags
-    const skills = dedupeArray(
+  // Fallback if not found in section
+  if (!work_mode || work_mode === "unspecified") {
+      const rawText = document.body?.innerText || "";
+      work_mode = inferWorkMode(rawText);
+  }
+
+  // Level: extract from Requirements section
+  // Look for links like "Младший (Junior)", "Средний (Middle)", etc.
+  const levelLink = pickText([
+      'a[href="/vacancies?qid=3"]', // Junior
+      'a[href="/vacancies?qid=4"]', // Middle
+      'a[href="/vacancies?qid=5"]', // Senior
+      'a[href*="qid="]'
+  ]) || "";
+
+  // Skills/tags: Habr uses specific tag links
+  const skills = dedupeArray(
       pickAllText([
-        'a[href^="/skills/"]',
-        "a.tag",
-        ".tags a",
-        ".vacancy__skills a",
-        ".vacancy-section__tags a"
+          'a[href^="/skills/"]',
+          ".vacancy-section__tags a",
+          "a.tag"
       ])
-    );
-  
-    // Description: section titled "Описание вакансии" often inside main/article
-    const description =
-      pickText(["article", "main"]) ||
-      "";
-  
-    return {
+  );
+
+  // Description: extract from vacancy-description__text
+  const description = pickText([
+      ".vacancy-description__text",
+      ".vacancy-description",
+      "article",
+      "main"
+  ]) || "";
+
+  return {
       role,
       company,
-      salary: pickText([".basic-salary", ".vacancy-salary", ".salary"]) || "",
-      location_city,
-      location_metro: "",
+      salary,
+      location_address,
+      location_metro: "", // Habr doesn't typically show metro stations
       work_mode,
+      levelLink, // Pass this for inference
       skills,
       job_description_raw: description,
       source: "career.habr.com"
-    };
-  }  
+  };
+}
