@@ -1,342 +1,402 @@
-# Vacancy Parser Browser Extension
+# 📋 Vacancy Parser - Chrome Extension
 
-One-click parser for HH.ru job vacancies → Obsidian Markdown
+> One-click parser for Russian job sites → Obsidian-ready Markdown
 
-## 🚀 Quick Start (5 minutes)
+Parse job vacancies from **HH.ru**, **Career.Habr.com**, **GeekJob.ru**, and **SuperJob.ru** into structured Markdown files with a single click.
 
-### Step 1: Create Extension Folder
+---
+
+## ✨ Features
+
+- **🎯 Multi-Site Support**: Works with 4 major Russian job boards
+- **📊 Smart Extraction**: Automatically detects and normalizes:
+  - Role names (e.g., "Data Analyst", "ML Engineer")
+  - Seniority levels (intern/junior/middle/senior)
+  - Salary (converts to net RUB, handles USD/EUR)
+  - Work mode (remote/hybrid/office)
+  - Skills and tech stack
+- **🧹 Clean Output**: Removes tracking parameters, deduplicates skills
+- **📝 Obsidian-Ready**: YAML frontmatter + structured content
+- **💾 Flexible Export**: Copy to clipboard or download as `.md` file
+- **🚀 Zero Setup**: No API keys, no configuration needed
+
+---
+
+## 🚀 Installation
+
+### Quick Install (5 minutes)
+
+1. **Download or clone this repository**
+   ```bash
+   git clone https://github.com/bahrs/vacancy_parser_js.git
+   cd vacancy_parser_js
+   ```
+
+2. **Load extension in Chrome (or any other Chrome-based browser)**
+   - Open `chrome://extensions/`
+   - Enable **Developer mode** (toggle in top-right)
+   - Click **Load unpacked**
+   - Select the extension folder
+   - Done! 🎉
+
+3. **Pin to toolbar** (optional but recommended)
+   - Click the puzzle icon in Chrome toolbar
+   - Find "Vacancy Parser (Obsidian)"
+   - Click the pin icon
+
+---
+
+## 📖 Usage
+
+### Basic Usage
+
+1. Open any vacancy page on supported sites:
+   - https://hh.ru/vacancy/XXXXXXXX
+   - https://career.habr.com/vacancies/XXXXXXXX
+   - https://geekjob.ru/vacancies/XXXXXXXX
+   - https://superjob.ru/vakansii/XXXXXXXX
+
+2. Click the extension icon in your toolbar
+
+3. Click **"Parse This Page"**
+
+4. Choose your export method:
+   - **Copy Markdown**: Copies to clipboard → paste into Obsidian
+   - **Download .md File**: Downloads with auto-generated filename
+
+### Example Output
+
+```markdown
+---
+type: application
+
+company: "Yandex"
+role: "Senior Data Analyst"
+role_norm: "Data Analyst"
+level: "senior"
+
+source: "hh.ru"
+job_link: "https://hh.ru/vacancy/123456"
+
+work_mode: "hybrid"
+location_address: "Москва, Лев Толстого 16"
+location_metro: "Парк культуры"
+
+salary: "от 200 000 ₽"
+salary_min_net: "200000"
+salary_currency: "RUB"
+
+skills: ["Python", "SQL", "Tableau", "A/B testing"]
+status: "want to apply"
+---
+
+## Snapshot
+- **Company:** Yandex
+- **Role:** Senior Data Analyst (senior)
+- **Location:** Москва, Лев Толстого 16
+- **Salary (min net):** 200000 RUB
+...
+```
+
+---
+
+## 🏗️ Architecture
+
+### Project Structure
 
 ```
-vacancy_parser_extension/
-├── manifest.json
-├── content.js
-├── popup.html
-├── popup.js
-├── icon16.png
-├── icon48.png
-└── icon128.png
+vacancy-parser-extension/
+├── manifest.json           # Extension configuration
+├── popup.html             # Extension popup UI
+├── popup.js              # Popup logic & orchestration
+├── content_loader.js     # Main content script orchestrator
+│
+├── lib/
+│   ├── normalize.js      # Utility functions & normalization
+│   └── template.js       # Template rendering engine
+│
+├── parsers/
+│   ├── hh.js            # HH.ru parser
+│   ├── habr.js          # Career.Habr parser
+│   ├── geekjob.js       # GeekJob parser
+│   └── superjob.js      # SuperJob parser
+│
+├── templates/
+│   └── obsidian_vacancy.md   # Markdown template
+│
+└── icons/
+    ├── icon16.png
+    ├── icon48.png
+    └── icon128.png
 ```
 
-### Step 2: Add Icons
+### Data Flow
 
-**Quick solution**: Download any 3 PNG files and rename them to `icon16.png`, `icon48.png`, `icon128.png`
+```
+User clicks "Parse"
+    ↓
+popup.js sends message
+    ↓
+content_loader.js orchestrates:
+    ├─→ Detect site (detectSource)
+    ├─→ Call site parser (parseHH/parseHabr/etc)
+    ├─→ Normalize data (normalizeRole, inferLevel)
+    ├─→ Parse salary (parseSalaryMinNetAndCurrency)
+    └─→ Return structured data
+    ↓
+popup.js renders template
+    ↓
+User copies/downloads Markdown
+```
 
-**Or use this online tool**: https://www.favicon-generator.org/
-- Upload any image
-- Download the icon pack
-- Rename files to match above
+---
 
-**Or use placeholders**: Create colored squares in Paint (16x16, 48x48, 128x128 pixels)
+## 🎨 Supported Sites & Parsers
 
-### Step 3: Load Extension in Chrome
+### 1. HH.ru ✅ **Fully Tested**
+- **Stability**: 🟢 Excellent (uses `data-qa` attributes)
+- **Extracted Fields**:
+  - ✅ Role, Company, Salary
+  - ✅ Location (city + metro)
+  - ✅ Work mode, Experience
+  - ✅ Skills, Full description
+- **Special Features**: 
+  - Custom location parser (handles complex address + metro structure)
+  - Reliable selectors via `data-qa` attributes
 
-1. Open Chrome and go to `chrome://extensions/`
-2. Enable **Developer mode** (toggle in top-right)
-3. Click **Load unpacked**
-4. Select your `vacancy_parser_extension` folder
-5. Done! You should see the extension icon in your toolbar
+### 2. Career.Habr.com ✅ **Working**
+- **Stability**: 🟡 Good (class-based selectors)
+- **Extracted Fields**:
+  - ✅ Role, Company, Salary
+  - ✅ Location, Work mode
+  - ✅ Skills, Explicit level detection
+  - ✅ Full description
+- **Special Features**:
+  - Detects explicit level from links (`qid=3/4/5` for Junior/Middle/Senior)
+  - Handles "Не указана" salary
 
-### Step 4: Test It!
+### 3. GeekJob.ru ⚠️ **Best Effort**
+- **Stability**: 🟠 Challenging (dynamic content)
+- **Extracted Fields**:
+  - ✅ Role, Company, Salary
+  - ⚠️ Location (limited)
+  - ✅ Work mode (inferred), Skills
+  - ✅ Full description
+- **Note**: Tolerant parser with multiple fallbacks
 
-1. Go to any HH.ru vacancy page (e.g., https://hh.ru/vacancy/128081806)
-2. Click the extension icon
-3. Click **Parse This Page**
-4. Click **Copy Markdown** or **Download .md File**
-5. Paste into your Obsidian vault!
+### 4. SuperJob.ru ⚠️ **Best Effort**
+- **Stability**: 🟠 Challenging (hashed classes)
+- **Extracted Fields**:
+  - ✅ Role, Company, Salary
+  - ✅ Location (heuristic-based)
+  - ✅ Metro (heuristic-based)
+  - ✅ Work mode, Skills
+  - ✅ Full description (cuts at "Похожие вакансии")
+- **Special Features**:
+  - Advanced location parser with heuristics
+  - Escapes special characters in selectors (e.g., `+` in class names)
 
-## 📋 What It Extracts
+---
 
-- ✅ Role/Position title
-- ✅ Company name
-- ✅ Salary (detects "на руки")
-- ✅ Location (city + metro)
-- ✅ Work mode (remote/hybrid/office)
-- ✅ Key skills
-- ✅ Full job description
-- ✅ Auto-classifies position type (Data Analyst/Scientist/Engineer/etc.)
-- ✅ Auto-detects level (intern/junior/middle/senior)
+## 🧠 Smart Features
+
+### Role Normalization
+Converts varied role names to standard categories:
+```javascript
+"Дата-аналитик" → "Data Analyst"
+"ML-инженер" → "ML Engineer"
+"DWH разработчик" → "Data Engineer"
+```
+
+**Supported Roles**:
+- Data Analyst
+- Product Analyst
+- BI Analyst
+- Data Scientist
+- ML Engineer
+- Data Engineer
+
+### Level Inference
+Automatically detects seniority from:
+- Role title keywords: "junior", "senior", "middle"
+- Experience requirements: "от 1 года", "3-5 лет"
+- Russian terms: "младший", "старший", "ведущий"
+- Explicit level links (Habr.com)
+
+**Output**: `intern`, `junior`, `junior+`, `middle`, `senior`
+
+### Salary Normalization
+- **Converts currencies**: USD/EUR → RUB (using approximate rates)
+- **Gross to Net**: Converts "до вычета налогов" to "на руки" (×0.87)
+- **Rounds**: To nearest 5,000 RUB for consistency
+- **Example**: "200 000 - 300 000 руб." → `salary_min_net: "200000"`
+
+### Work Mode Detection
+Intelligently detects from text:
+- **Remote**: "удалённо", "remote"
+- **Hybrid**: "можно удалённо", "hybrid", "гибрид"
+- **Office**: "офис", "office", "очно"
+
+---
+
+## 🛠️ Development
+
+### Tech Stack
+- **Manifest V3**: Latest Chrome extension API
+- **Pure JavaScript**: No frameworks, zero dependencies
+- **Content Scripts**: Injected into job site pages
+- **Message Passing**: Popup ↔ Content script communication
+
+### Adding a New Site
+
+1. **Add URL pattern to `manifest.json`**:
+   ```json
+   "host_permissions": [
+     "*://newsite.com/*"
+   ]
+   ```
+
+2. **Create parser** in `parsers/newsite.js`:
+   ```javascript
+   function parseNewSite() {
+     const role = pickText(["h1", ".job-title"]);
+     const company = pickText([".company-name"]);
+     // ... extract other fields
+     
+     return {
+       role,
+       company,
+       salary,
+       location_address,
+       // ...
+     };
+   }
+   ```
+
+3. **Register parser** in `content_loader.js`:
+   ```javascript
+   function detectSource(hostname) {
+     if (hostname.includes("newsite.com")) return "newsite";
+     // ...
+   }
+   
+   function parseBySource(source) {
+     if (source === "newsite") return parseNewSite();
+     // ...
+   }
+   ```
+
+### Debugging
+
+**View popup console**:
+- Right-click extension icon → "Inspect popup"
+
+**View content script console**:
+- Open page (e.g., HH.ru vacancy)
+- Press F12 → Console tab
+
+**Test selectors**:
+```javascript
+// In page console
+document.querySelector("YOUR_SELECTOR")?.innerText
+
+// For lists
+[...document.querySelectorAll("YOUR_SELECTOR")].map(e => e.innerText)
+```
+
+---
 
 ## 🔧 Troubleshooting
 
-**"Error: Could not establish connection"**
-- Refresh the HH.ru page after loading the extension
-- Extension only works on `hh.ru` domains
+### "Could not establish connection"
+**Cause**: Content script not loaded  
+**Fix**: Refresh the vacancy page after loading the extension
 
-**"Please open an HH.ru vacancy page"**
-- Make sure you're on a vacancy page (URL contains `/vacancy/`)
+### "Please open a vacancy page"
+**Cause**: Wrong URL  
+**Fix**: Make sure you're on a vacancy detail page (not search results)
 
-**Some fields are empty**
-- HH.ru changed their HTML structure
-- Open DevTools (F12) and find the correct CSS selector
-- Update `content.js` with new selectors
+### Empty fields in output
+**Cause**: Site changed HTML structure  
+**Fix**: 
+1. Open DevTools (F12) on the page
+2. Find the element you want
+3. Right-click → Copy → Copy selector
+4. Update the parser in `parsers/*.js`
 
-## 🎯 Next Steps
+### Extension not appearing
+**Cause**: Not loaded properly  
+**Fix**:
+1. Go to `chrome://extensions/`
+2. Remove and reload the extension
+3. Check for errors in the extension card
 
-**To add more sites:**
-1. Add URL pattern to `manifest.json` (e.g., `"*://*.habr.com/*"`)
-2. Create site-specific parsing logic in `content.js`
-3. Detect site by URL and choose appropriate parser
+---
 
-**To customize template:**
-- Edit the `formatMarkdown()` function in `popup.js`
-- Change YAML frontmatter structure
-- Add/remove fields as needed
+## 📝 Customization
 
-**To auto-open in Obsidian:**
-- Use Obsidian URI scheme: `obsidian://new?vault=YourVault&name=filename`
-- Add button in popup.html that opens this URL
+### Modify Template
+Edit `templates/obsidian_vacancy.md` to change:
+- YAML frontmatter fields
+- Markdown structure
+- Default values
 
-## 📝 Files Overview
-
-| File | Purpose |
-|------|---------|
-| `manifest.json` | Extension configuration |
-| `content_loader.js` | Runs on job sites, orchestrates parsing + normalization |
-| `parsers/*.js` | Site-specific DOM extraction (CSS selectors) |
-| `lib/normalize.js` | Common normalization (role names, levels, salary, work mode) |
-| `lib/template.js` | Template rendering engine ({{variable}} replacement) |
-| `popup.html` | UI when you click extension icon |
-| `popup.js` | Orchestrates parsing, handles UI, sends messages to content script |
-| `templates/obsidian_vacancy.md` | Markdown template with YAML frontmatter |
-
-## 🔄 Data Flow & Architecture
-
-### Overview
-A Chrome extension that extracts job vacancy data from Russian job sites (hh.ru, career.habr.com, geekjob.ru, superjob.ru) and converts it to Obsidian Markdown format.
-
-### Data Flow (Step by Step)
-
-#### 1. Extension Initialization (`manifest.json`)
-When the extension loads:
-- Content scripts are injected into job sites automatically
-- Scripts load in order:
-  1. `lib/normalize.js` - utility functions
-  2. `parsers/hh.js`, `parsers/habr.js`, etc. - site-specific parsers
-  3. `content_loader.js` - main orchestrator
-
-#### 2. User Interaction (`popup.html` + `popup.js`)
-```
-User clicks extension icon
-    ↓
-Popup opens (popup.html)
-    ↓
-User clicks "Parse This Page" button
-    ↓
-popup.js sends message to content script
-```
-
-#### 3. Content Script Execution (`content_loader.js`)
-When `popup.js` sends `{ action: "parseVacancy" }`:
-
+### Change Filename Format
+Edit `buildFilename()` in `popup.js`:
 ```javascript
-// Step 1: Detect which site we're on
-const source = detectSource(location.hostname);
-// Returns: "hh.ru", "career.habr", "geekjob", "superjob", or "other"
-
-// Step 2: Call site-specific parser
-const partial = parseBySource(source);
-// Calls parseHH(), parseHabr(), parseGeekjob(), etc.
-```
-
-#### 4. Site-Specific Parsing (`parsers/*.js`)
-Each parser extracts raw data from DOM:
-
-```javascript
-// Example: parsers/hh.js
-function parseHH() {
-    const role = pickText(['[data-qa="vacancy-title"]', "h1"]);
-    const company = pickText(['[data-qa="vacancy-company-name"]']);
-    const salary = pickText(['[data-qa="vacancy-salary"]']);
-    // ... more fields
-    
-    return {
-        role,           // Raw text: "Senior Data Analyst"
-        company,        // Raw text: "Yandex"
-        salary,         // Raw text: "200 000 - 300 000 руб. на руки"
-        skills: [...],  // Array of strings
-        // ...
-    };
+function buildFilename(v) {
+  const date = new Date().toISOString().slice(0, 10);
+  // Customize format here
+  return `${date}_${v.company}_${v.role}.md`;
 }
 ```
 
-Returns a **partial object** with raw, unprocessed data.
+### Add Custom Fields
+1. Extract in parser: `const myField = pickText([".my-selector"])`
+2. Return in parser: `return { ..., myField }`
+3. Add to template: `my_field: "{{myField}}"`
 
-#### 5. Normalization (`lib/normalize.js`)
-The raw data is normalized:
+---
 
-```javascript
-// In content_loader.js after parsing:
+## 🤝 Contributing
 
-// Normalize role name
-const role_norm = normalizeRole(role);
-// "Senior Data Analyst" → "Data Analyst"
+Contributions welcome! Areas for improvement:
 
-// Infer level
-const level = inferLevel(role, rawText);
-// Analyzes text → "junior", "middle", "senior", etc.
+### High Priority
+- [ ] Better SuperJob.ru selector stability
+- [ ] GeekJob.ru location extraction
+- [ ] Unit tests for parsers
+- [ ] Error recovery for failed extractions
 
-// Parse and normalize salary
-const { salary_min_net, salary_currency } = parseSalaryMinNetAndCurrency(salary);
-// "200 000 - 300 000 руб. на руки" → { salary_min_net: "200000", salary_currency: "RUB" }
-// Converts USD/EUR to RUB, gross to net, rounds to 5000
+### Nice to Have
+- [ ] More job sites (Zarplata.ru, Rabota.ru, etc.)
+- [ ] LinkedIn support (challenging due to auth)
+- [ ] Multiple template options
+- [ ] Batch parsing (save multiple vacancies)
 
-// Infer work mode
-const work_mode = inferWorkMode(rawText);
-// "удаленно" → "remote"
+### Contribution Process
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Test on all 4 supported sites
+4. Commit changes (`git commit -m 'Add amazing feature'`)
+5. Push to branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-// Clean and dedupe skills
-const skills = dedupeArray(skills.map(cleanText));
-```
+---
 
-#### 6. Final Data Assembly (`content_loader.js`)
-All normalized data is combined:
+## 📄 License
 
-```javascript
-const data = {
-    company: cleanText(partial.company),
-    role,                    // Original: "Senior Data Analyst"
-    role_norm,              // Normalized: "Data Analyst"
-    level,                   // Inferred: "senior"
-    source,                  // "hh.ru"
-    job_link,                // Cleaned URL (tracking params removed)
-    work_mode,               // "remote"
-    location_city,           // "Москва"
-    location_metro,          // "Деловой центр"
-    salary_min_net,         // "200000"
-    salary_currency,         // "RUB"
-    skills,                  // ["Python", "SQL", ...]
-    job_description_raw,    // Full text
-    // ...
-};
-```
+MIT License - feel free to use, modify, and distribute.
 
-#### 7. Template Rendering (`lib/template.js` + `popup.js`)
-```javascript
-// popup.js loads template
-const templateText = await loadExtensionTextFile("templates/obsidian_vacancy.md");
+---
 
-// Render template with data
-const markdown = renderTemplate(templateText, vacancy);
-// Replaces {{company}} → "Yandex", {{role}} → "Senior Data Analyst", etc.
-```
+## 🙏 Acknowledgments
 
-#### 8. Output (`popup.js`)
-User can:
-- **Copy Markdown** to clipboard
-- **Download** as `.md` file (auto-named: `2024-01-15_yandex_data_analyst.md`)
+- Inspired by the need for structured job application tracking
+- Built for the Obsidian note-taking community
+- Thanks to all contributors and testers
 
-### Communication Pattern
-
-```
-┌─────────────┐
-│  popup.js   │  (Extension popup - separate context)
-└──────┬──────┘
-       │ chrome.tabs.sendMessage()
-       │ { action: "parseVacancy" }
-       ↓
-┌──────────────────┐
-│ content_loader.js │  (Runs on job site page)
-│ (injected into   │
-│  page context)   │
-└──────┬───────────┘
-       │
-       ├─→ detectSource() → "hh.ru"
-       ├─→ parseBySource() → parseHH()
-       ├─→ normalizeRole()
-       ├─→ inferLevel()
-       ├─→ parseSalaryMinNetAndCurrency()
-       └─→ sendResponse({ data })
-       │
-       ↑
-       │ { ok: true, data: {...} }
-       │
-┌──────┴──────┐
-│  popup.js   │
-└─────────────┘
-```
-
-### Design Patterns
-
-1. **Separation of Concerns:**
-   - **Parsers** = extraction (site-specific)
-   - **Normalizers** = processing (domain-specific)
-   - **Template** = presentation (format-specific)
-
-2. **Fallback Chain:**
-   - Each parser uses multiple CSS selectors: `pickText(['selector1', 'selector2', 'fallback'])`
-   - If site-specific parser fails → `parseGeneric()` fallback
-
-3. **Message Passing:**
-   - Popup ↔ Content script via `chrome.tabs.sendMessage()`
-   - Async/await pattern for handling responses
-
-4. **Script Injection:**
-   - If content script not loaded → `ensureContentScript()` injects it dynamically
-   - Handles page refreshes gracefully
-
-### Example Flow
-
-1. User visits: `https://hh.ru/vacancy/123456`
-2. Clicks extension icon → popup opens
-3. Clicks "Parse This Page"
-4. `popup.js` sends message to `content_loader.js`
-5. `content_loader.js` detects "hh.ru" → calls `parseHH()`
-6. `parseHH()` extracts: `role: "Senior Data Analyst"`, `salary: "200 000 руб. на руки"`
-7. Normalization:
-   - `normalizeRole()` → `role_norm: "Data Analyst"`
-   - `inferLevel()` → `level: "senior"`
-   - `parseSalaryMinNetAndCurrency()` → `salary_min_net: "200000"`
-8. Data assembled into final object
-9. Template rendered → Markdown string
-10. User copies/downloads the Markdown file
-
-This architecture keeps parsing, normalization, and presentation separate, making it easy to add new sites or change output formats.
-
-## 💡 Pro Tips
-
-- Pin the extension to toolbar for quick access
-- Set up keyboard shortcut in `chrome://extensions/shortcuts`
-- For debugging: Right-click extension icon → Inspect popup
+---
 
 
-**Ready to test? Load it up and parse your first vacancy! 🎉**
-
-
-
-
-
-# How to add / monitor DOM fields yourself (beginner-friendly)
-
-### 1) Open DevTools on the vacancy page
-- Press **F12** (or Right click → **Inspect**)
-- Go to **Elements** tab
-
-### 2) “Pick” the element you want (role/company/salary/etc.)
-- Click the **arrow icon** (top-left in DevTools)
-- Click the element on the page (e.g., the company name)
-
-### 3) Copy a CSS selector
-- In **Elements**, right-click the highlighted node → **Copy → Copy selector**
-- Now you have a CSS selector string.
-
-### 4) Test the selector in Console (super important)
-Go to **Console** tab and run:
-
-```js
-document.querySelector("PASTE_SELECTOR_HERE")?.innerText
-```
-for lists (skills, tags) use
-```js
-[...document.querySelectorAll("PASTE_SELECTOR_HERE")].map(e => e.innerText.trim())
-```
-
-### 5) Add it to a parser file
-
-Example: you found a selector for salary. Put it into pickText([...]):
-```js
-const salary = pickText([
-  "your-new-salary-selector",
-  "your-fallback-selector",
-  ".salary"
-]);
-```
+**Happy job hunting! 🎯**
