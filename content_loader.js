@@ -121,7 +121,7 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         // optional extras
         parsed_at: new Date().toISOString()
       };
-
+      data.filename = generateFilename(data);
       _lastVacancy = data;
 
       sendResponse({ ok: true, data });

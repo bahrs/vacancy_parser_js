@@ -50,3 +50,4 @@ Cover letter (draft)
 ```
 {{cover_letter_draft}}
 ```
+[[Вакансии - dashboard]]

@@ -55,12 +55,11 @@ async function ensureContentScript(tabId) {
 }
 
 function buildFilename(v) {
-  const date = new Date().toISOString().slice(0, 10);
-  const role = (v.role_norm || v.role || "vacancy").toString();
-  const company = (v.company || "company").toString();
-  const base = `${date}_${company}_${role}`;
-  return `${slugify(base).slice(0, 120)}.md`;
+  // Uses Windows-safe naming convention:
+  // "{company} {role_abbrev} -{levelAbbrev}.md" (level is optional)
+  return generateFilename(v);
 }
+
 
 async function loadTemplateOnce() {
   if (templateText) return templateText;
