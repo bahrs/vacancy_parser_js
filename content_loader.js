@@ -117,7 +117,7 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
       // Handle both location_address and location_city for backward compatibility
       const location_address = cleanText(partial.location_address || partial.location_city || "");
       const location_metro = cleanText(partial.location_metro || "");
-
+      
       const data = {
         // template fields
         company: cleanText(partial.company || ""),
@@ -133,15 +133,16 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         salary: cleanText(partial.salary || ""),
         salary_min_net,
         salary_currency,
-
+      
         stack,
         skills,
-
+      
         apply_date: todayLocalISO(), // local YYYY-MM-DD
+        publish_date: cleanText(partial.publish_date || ""), // from parser
         tags: partial.tags || [],
         job_description_raw: rawText,
         cover_letter_draft: "",
-
+      
         // optional extras
         parsed_at: new Date().toISOString()
       };

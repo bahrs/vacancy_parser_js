@@ -22,6 +22,7 @@ skills: {{skills_yaml}}
 
 status: want to apply  # want to apply | applied | interview | offer | rejected | vacancy archived
 apply_date: "{{apply_date}}"
+publish_date: "{{publish_date}}"
 next_action:
 next_due:
 priority: medium  # low | medium | high

@@ -86,11 +86,12 @@ function parseHH() {
     // HH has great stable selectors via data-qa
     const role = pickText(['[data-qa="vacancy-title"]', "h1"]) || "";
   
-    const company = pickText([
+    let company = pickText([
       '[data-qa="vacancy-company-name"]',
       '[data-qa="vacancy-company"] a',
       'a[data-qa="vacancy-company-name"]'
     ]);
+    company = cleanCompanyName(company);
   
     const salary = pickText(['[data-qa="vacancy-salary"]', '[data-qa="vacancy-salary-compensation-type"]']);
   
@@ -109,6 +110,19 @@ function parseHH() {
     
     // Extract experience requirement for level inference
     const experience = pickText(['[data-qa="vacancy-experience"]']);
+    
+    // Parse publish date
+    let publish_date = "";
+    try {
+      const pubElements = document.querySelectorAll('[class*="magritte-text"][class*="style-secondary"]');
+      for (const el of pubElements) {
+        const text = cleanText(el.innerText || el.textContent || "");
+        if (/вакансия опубликована/i.test(text)) {
+          publish_date = parseRussianDate(text);
+          break;
+        }
+      }
+    } catch (_) {}
 
     return {
       role,
@@ -119,8 +133,8 @@ function parseHH() {
       work_mode,
       skills,
       experience,
+      publish_date,
       job_description_raw: description,
       source: "hh.ru"
     };
   }
-  
