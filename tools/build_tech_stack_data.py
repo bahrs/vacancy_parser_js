@@ -5,7 +5,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
-YAML_PATH = ROOT / "lib" / "__tech_stack.yaml"
+YAML_PATH = ROOT / "lib" / "tech_stack.yaml"
 OUT_PATH  = ROOT / "lib" / "tech_stack_data.js"
 
 def main() -> None:
@@ -27,4 +27,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    

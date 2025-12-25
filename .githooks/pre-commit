@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-YAML="lib/__tech_stack.yaml"
+YAML="lib/tech_stack.yaml"
 OUT="lib/tech_stack_data.js"
 SCRIPT="tools/build_tech_stack_data.py"
 
