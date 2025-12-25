@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+YAML="lib/__tech_stack.yaml"
+OUT="lib/tech_stack_data.js"
+SCRIPT="tools/build_tech_stack_data.py"
+
+# run only if YAML is staged
+if git diff --cached --name-only -- "$YAML" | grep -q "^$YAML$"; then
+  echo "[pre-commit] Regenerating $OUT from $YAML"
+
+  if command -v py >/dev/null 2>&1; then
+    py -3 "$SCRIPT"
+  else
+    python "$SCRIPT"
+  fi
+
+  git add "$OUT"
+fi
