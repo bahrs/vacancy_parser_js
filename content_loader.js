@@ -1,5 +1,11 @@
 let _lastVacancy = null;
 
+function todayLocalISO() {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 function detectSource(hostname) {
   const host = hostname.replace(/^www\./, "").toLowerCase();
 
@@ -71,28 +77,44 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
 
       const role = (partial.role || "").trim();
       const role_norm = normalizeRole(role);
+
       const rawText = (partial.job_description_raw || document.body?.innerText || "").trim();
-      
+
       // Include experience field if available for level inference
       const experienceText = (partial.experience || "").trim();
       const textForLevel = experienceText ? `${rawText}\n${experienceText}` : rawText;
 
-      // Pass levelLink from Habr parser for explicit level detection
+      // Pass levelLink from Habr parser for explicit level detection (extra args are OK in JS)
       const level = partial.level || inferLevel(role, textForLevel, partial.levelLink || "");
+
       // Normalize work_mode if extracted, otherwise infer from rawText
-      const work_mode = partial.work_mode 
-        ? inferWorkMode(partial.work_mode) 
+      const work_mode = partial.work_mode
+        ? inferWorkMode(partial.work_mode)
         : inferWorkMode(rawText);
 
       const { salary_min_net, salary_currency } = parseSalaryMinNetAndCurrency(partial.salary || "");
 
-      const skills = dedupeArray(
+      // --- SKILLS: DOM + tech-stack aliases from raw text ---
+      const domSkills = dedupeArray(
         (partial.skills || [])
           .map((x) => cleanText(x))
           .filter(Boolean)
       );
 
-      // Handle both location_address (HH.ru) and location_city (other parsers) for backward compatibility
+      const techSkills =
+        (typeof window.extractTechSkillsFromText === "function")
+          ? window.extractTechSkillsFromText(rawText)
+          : [];
+
+      const skills = dedupeArray([...domSkills, ...techSkills]);
+
+      // --- STACK inferred from skills ---
+      const stack =
+        (typeof window.pickTechStack === "function")
+          ? window.pickTechStack(skills, 6)
+          : (partial.stack || []);
+
+      // Handle both location_address and location_city for backward compatibility
       const location_address = cleanText(partial.location_address || partial.location_city || "");
       const location_metro = cleanText(partial.location_metro || "");
 
@@ -111,9 +133,11 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         salary: cleanText(partial.salary || ""),
         salary_min_net,
         salary_currency,
-        stack: partial.stack || [],
+
+        stack,
         skills,
-        apply_date: new Date().toISOString().slice(0, 10), // Add this line: YYYY-MM-DD
+
+        apply_date: todayLocalISO(), // local YYYY-MM-DD
         tags: partial.tags || [],
         job_description_raw: rawText,
         cover_letter_draft: "",
@@ -121,6 +145,7 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
         // optional extras
         parsed_at: new Date().toISOString()
       };
+
       data.filename = generateFilename(data);
       _lastVacancy = data;
 

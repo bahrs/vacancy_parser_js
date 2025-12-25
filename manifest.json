@@ -36,6 +36,8 @@
       ],
       "js": [
         "lib/normalize.js",
+        "lib/tech_stack_data.js",
+        "lib/tech_stack.js",
         "parsers/hh.js",
         "parsers/habr.js",
         "parsers/geekjob.js",
