@@ -94,30 +94,36 @@ chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
 
       const { salary_min_net, salary_currency } = parseSalaryMinNetAndCurrency(partial.salary || "");
 
-      // --- SKILLS: DOM + tech-stack aliases from raw text ---
+      // --- NEW LOGIC: Stack always from raw text, Skills from DOM or fallback to stack ---
+
+      // 1) STACK: Always extract from raw text using tech_stack
+      let stack = [];
+      let allTechSkills = [];
+
+      if (typeof window.extractTechSkillsFromText === "function") {
+        allTechSkills = window.extractTechSkillsFromText(rawText);
+        
+        // Pick top skills for stack (prioritized)
+        if (typeof window.pickTechStack === "function") {
+          stack = window.pickTechStack(allTechSkills, 6);
+        } else {
+          stack = allTechSkills.slice(0, 6);
+        }
+      }
+
+      // 2) SKILLS: Prefer DOM skills, fallback to stack if empty
       const domSkills = dedupeArray(
         (partial.skills || [])
           .map((x) => cleanText(x))
           .filter(Boolean)
       );
 
-      const techSkills =
-        (typeof window.extractTechSkillsFromText === "function")
-          ? window.extractTechSkillsFromText(rawText)
-          : [];
-
-      const skills = dedupeArray([...domSkills, ...techSkills]);
-
-      // --- STACK inferred from skills ---
-      const stack =
-        (typeof window.pickTechStack === "function")
-          ? window.pickTechStack(skills, 6)
-          : (partial.stack || []);
+      const skills = domSkills.length > 0 ? domSkills : stack;
 
       // Handle both location_address and location_city for backward compatibility
       const location_address = cleanText(partial.location_address || partial.location_city || "");
       const location_metro = cleanText(partial.location_metro || "");
-      
+
       const data = {
         // template fields
         company: cleanText(partial.company || ""),
