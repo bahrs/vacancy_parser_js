@@ -1,7 +1,7 @@
 areas:
   analytics_concepts: Analytics concepts
   backend: Backend
-  bi: BI / Dashboards
+  bi: BI
   big_data: Big Data
   cloud: Cloud
   collaboration: Collaboration tools
@@ -671,6 +671,3 @@ skills:
     area: big_data
     implies:
     - spark
-
-
-
