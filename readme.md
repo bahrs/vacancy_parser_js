@@ -400,3 +400,9 @@ MIT License - feel free to use, modify, and distribute.
 
 
 **Happy job hunting! 🎯**
+
+# TODO:
+1. Ensure that stack is inferred from the raw text
+2. parse the date of vacancy publishing
+3. Improve GeekJob parsing (excessive raw text, specialization parsed as skills, excessive text in company name)
+4. Improve SuperJob parsing (infer everything from raw text)
